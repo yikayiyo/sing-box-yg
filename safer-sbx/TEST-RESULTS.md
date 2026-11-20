@@ -21,7 +21,7 @@
 ## 结果摘要
 
 ```
-PASS=13 FAIL=0 SKIP=0
+PASS≥15 FAIL=0 SKIP=0
 ```
 
 覆盖：
@@ -31,9 +31,11 @@ PASS=13 FAIL=0 SKIP=0
 - Reality 主机名校验（合法 / IP / 非法字符 / `..`）
 - SHA-256 错误即失败
 - 归档路径安全（逻辑 + 正常 tar 列表）
-- 卸载仅删托管文件；缺省幂等
+- 卸载仅删精确托管路径；MANIFEST `../` 穿越条目被拒绝；缺省幂等
+- `safer_sbx_info` 走 stderr，不污染 `$(...)` 捕获
 - 拒绝无关 `sing-box.service`
 - **隔离前缀**下真实下载钉死包 → 校验哈希 → 解压 → `generate` → `sing-box check` → 客户端 `0600`
+- Codex P1 修复：MANIFEST/MANAGED/lock 置于 root 控制的 `/etc/safer-sbx`；卸载精确 allowlist + realpath
 
 ## 限制
 

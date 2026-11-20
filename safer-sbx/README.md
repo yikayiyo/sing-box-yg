@@ -46,8 +46,9 @@
 | `/usr/local/lib/safer-sbx/bin/sing-box` | `0755` |
 | `/etc/safer-sbx/operator.env` | `0640` root:safer-sbx |
 | `/etc/safer-sbx/config.json` | `0640`（含私钥，勿外传） |
-| `/var/lib/safer-sbx/credentials.json` | `0600` |
-| `/var/lib/safer-sbx/client.json` | `0600` |
+| `/etc/safer-sbx/MANIFEST` / `MANAGED` / lock | `0600` root（服务账户不可改） |
+| `/var/lib/safer-sbx/credentials.json` | `0600` root |
+| `/var/lib/safer-sbx/client.json` | `0600` root |
 | `/etc/systemd/system/safer-sbx.service` | `0644`，最小能力集 |
 
 系统用户：`safer-sbx`（无登录 shell）。systemd：`NoNewPrivileges`、`ProtectSystem=strict`、`CAP_NET_BIND_SERVICE` 等。

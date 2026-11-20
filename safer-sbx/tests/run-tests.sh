@@ -111,6 +111,11 @@ echo binary >"$SAFER_SBX_BIN"
 echo keep >"${PREFIX}/etc/keep-me"
 # 清单外文件
 echo outsider >"${PREFIX}/etc/outsider"
+# 投毒：路径穿越条目不得删除宿主文件
+echo poison >"${PREFIX}/etc/shadow-like"
+printf '%s\n' "$SAFER_SBX_MANAGED" "$SAFER_SBX_BIN" \
+  "${SAFER_SBX_ETC}/../../../etc/shadow-like" \
+  "${SAFER_SBX_ETC}/../../etc/shadow-like" >"$SAFER_SBX_MANIFEST"
 assert_ok uninstall_managed bash -c '
   source '"$ROOT"'/lib/common.sh
   source '"$ROOT"'/lib/uninstall.sh
@@ -120,6 +125,7 @@ assert_ok uninstall_managed bash -c '
   safer_sbx_cmd_uninstall
   [[ ! -e "'"$SAFER_SBX_BIN"'" ]]
   [[ -e "'"$PREFIX"'/etc/outsider" ]]
+  [[ -e "'"$PREFIX"'/etc/shadow-like" ]]
 '
 assert_ok uninstall_absent bash -c '
   source '"$ROOT"'/lib/common.sh
@@ -128,6 +134,22 @@ assert_ok uninstall_absent bash -c '
   SAFER_SBX_ASSUME_YES=1
   safer_sbx_init_paths
   safer_sbx_cmd_uninstall
+'
+assert_fail manifest_escape bash -c '
+  source '"$ROOT"'/lib/common.sh
+  SAFER_SBX_PREFIX="'"$PREFIX"'"
+  safer_sbx_init_paths
+  safer_sbx_is_exact_managed_path "'"${SAFER_SBX_ETC}/../../../etc/shadow"'"
+'
+
+echo "=== fetch stdout is path-only ==="
+assert_ok fetch_stdout_clean bash -c '
+  source '"$ROOT"'/lib/common.sh
+  source '"$ROOT"'/lib/detect.sh
+  source '"$ROOT"'/lib/download.sh
+  # 模拟：info 不得进入捕获
+  out=$(safer_sbx_info "diag"; printf "/tmp/safer-sbx.fake/file.tar.gz\n")
+  [[ "$out" == "/tmp/safer-sbx.fake/file.tar.gz" ]]
 '
 
 echo "=== refuse unrelated sing-box unit ==="

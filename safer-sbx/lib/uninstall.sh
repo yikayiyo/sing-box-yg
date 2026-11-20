@@ -22,24 +22,17 @@ safer_sbx_cmd_uninstall_locked() {
     mapfile -t entries <"$SAFER_SBX_MANIFEST"
     for f in "${entries[@]}"; do
       [[ -n "$f" ]] || continue
-      # 保护：只删除清单内、且路径落在托管前缀下的文件
-      case "$f" in
-        "${SAFER_SBX_PREFIX}/usr/local/lib/safer-sbx"/*|\
-        "${SAFER_SBX_PREFIX}/etc/safer-sbx"/*|\
-        "${SAFER_SBX_PREFIX}/var/lib/safer-sbx"/*|\
-        "${SAFER_SBX_PREFIX}/etc/systemd/system/safer-sbx.service")
-          if [[ -e "$f" || -L "$f" ]]; then
-            rm -f -- "$f"
-            safer_sbx_info "已删除: $f"
-          fi
-          ;;
-        *)
-          safer_sbx_warn "跳过非托管路径（保护）: $f"
-          ;;
-      esac
+      if ! safer_sbx_is_exact_managed_path "$f"; then
+        safer_sbx_warn "跳过非精确托管路径（保护）: $f"
+        continue
+      fi
+      if [[ -e "$f" || -L "$f" ]]; then
+        rm -f -- "$f"
+        safer_sbx_info "已删除: $f"
+      fi
     done
   fi
-  # 清理空目录（不强制）
+  # 清理空目录（不强制；不跟随用户可控路径）
   rmdir "${SAFER_SBX_PREFIX}/usr/local/lib/safer-sbx/bin" 2>/dev/null || true
   rmdir "${SAFER_SBX_PREFIX}/usr/local/lib/safer-sbx" 2>/dev/null || true
   rmdir "${SAFER_SBX_PREFIX}/etc/safer-sbx" 2>/dev/null || true

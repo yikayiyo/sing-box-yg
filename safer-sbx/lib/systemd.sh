@@ -47,9 +47,9 @@ RestrictRealtime=true
 SystemCallArchitectures=native
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+# 配置只读；不授予对安装元数据/凭证目录的写权限
 ReadOnlyPaths=${SAFER_SBX_ETC}
-ReadWritePaths=${SAFER_SBX_VAR}
-# 配置与凭证仅服务账户可读
+# 配置与凭证仅服务账户可读（组读 config）；不写 VAR
 UMask=0077
 
 [Install]

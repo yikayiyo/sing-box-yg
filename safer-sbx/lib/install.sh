@@ -77,16 +77,19 @@ safer_sbx_cmd_install_locked() {
   safer_sbx_write_server_config "$SAFER_SBX_BIN" "$SAFER_SBX_CREDS" "$SAFER_SBX_CONFIG"
   safer_sbx_write_client_config "$SAFER_SBX_CREDS" "$SAFER_SBX_CLIENT"
   safer_sbx_ensure_user
-  if [[ -z "${SAFER_SBX_PREFIX:-}" ]]; then
-    chown -R "${SAFER_SBX_USER}:${SAFER_SBX_GROUP}" "$SAFER_SBX_VAR"
-    chown "root:${SAFER_SBX_GROUP}" "$SAFER_SBX_ETC" "$SAFER_SBX_CONFIG" "$SAFER_SBX_OPERATOR_ENV"
-    chmod 750 "$SAFER_SBX_ETC"
-    chmod 640 "$SAFER_SBX_CONFIG" "$SAFER_SBX_OPERATOR_ENV"
-    # 服务账户需读配置
-    chmod 600 "$SAFER_SBX_CREDS" "$SAFER_SBX_CLIENT"
-  fi
   safer_sbx_write_unit "$SAFER_SBX_UNIT"
   safer_sbx_write_manifest
+  if [[ -z "${SAFER_SBX_PREFIX:-}" ]]; then
+    # /etc/safer-sbx：root 控制元数据与配置；服务组只读配置/运营商文件
+    chown -R "root:${SAFER_SBX_GROUP}" "$SAFER_SBX_ETC"
+    chmod 750 "$SAFER_SBX_ETC"
+    chmod 640 "$SAFER_SBX_CONFIG" "$SAFER_SBX_OPERATOR_ENV"
+    chmod 600 "$SAFER_SBX_MANIFEST" "$SAFER_SBX_MANAGED" "$SAFER_SBX_LOCK"
+    # 凭证/客户端仅 root；服务账户无需写 VAR
+    chown -R "root:root" "$SAFER_SBX_VAR"
+    chmod 700 "$SAFER_SBX_VAR"
+    chmod 600 "$SAFER_SBX_CREDS" "$SAFER_SBX_CLIENT"
+  fi
   safer_sbx_print_firewall_hint "$LISTEN_PORT"
   safer_sbx_systemd_reload_enable
   trap - EXIT

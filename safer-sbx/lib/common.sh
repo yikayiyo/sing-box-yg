@@ -9,7 +9,8 @@ safer_sbx_die() {
 }
 
 safer_sbx_info() {
-  printf '%s\n' "$*"
+  # 诊断一律 stderr，避免污染 $(...) 捕获的返回值
+  printf '%s\n' "$*" >&2
 }
 
 safer_sbx_warn() {
@@ -34,13 +35,56 @@ safer_sbx_init_paths() {
   SAFER_SBX_UNIT="${SAFER_SBX_UNIT_DIR}/safer-sbx.service"
   SAFER_SBX_OPERATOR_ENV="${SAFER_SBX_ETC}/operator.env"
   SAFER_SBX_CONFIG="${SAFER_SBX_ETC}/config.json"
-  SAFER_SBX_MANIFEST="${SAFER_SBX_VAR}/MANIFEST"
-  SAFER_SBX_MANAGED="${SAFER_SBX_VAR}/MANAGED"
+  # 安装元数据放在 root 控制的 /etc/safer-sbx，避免服务账户改写卸载清单
+  SAFER_SBX_MANIFEST="${SAFER_SBX_ETC}/MANIFEST"
+  SAFER_SBX_MANAGED="${SAFER_SBX_ETC}/MANAGED"
   SAFER_SBX_CREDS="${SAFER_SBX_VAR}/credentials.json"
   SAFER_SBX_CLIENT="${SAFER_SBX_VAR}/client.json"
-  SAFER_SBX_LOCK="${SAFER_SBX_VAR}/safer-sbx.lock"
+  SAFER_SBX_LOCK="${SAFER_SBX_ETC}/safer-sbx.lock"
   SAFER_SBX_USER="${SAFER_SBX_USER:-safer-sbx}"
   SAFER_SBX_GROUP="${SAFER_SBX_GROUP:-safer-sbx}"
+}
+
+# 解析规范路径；失败则空
+safer_sbx_realpath() {
+  local p="$1"
+  if command -v realpath >/dev/null 2>&1; then
+    realpath -m -- "$p" 2>/dev/null || true
+  else
+    readlink -f -- "$p" 2>/dev/null || true
+  fi
+}
+
+# 仅允许删除已知托管绝对路径（精确匹配 + 规范化后仍相等）
+safer_sbx_is_exact_managed_path() {
+  local candidate="$1"
+  local expected resolved_c resolved_e
+  # 拒绝相对路径与显式 .. 段（fail-closed）
+  case "$candidate" in
+    /*) ;;
+    *) return 1 ;;
+  esac
+  case "$candidate" in
+    *..*) return 1 ;;
+  esac
+  for expected in \
+    "$SAFER_SBX_BIN" \
+    "$SAFER_SBX_OPERATOR_ENV" \
+    "$SAFER_SBX_CONFIG" \
+    "$SAFER_SBX_UNIT" \
+    "$SAFER_SBX_MANAGED" \
+    "$SAFER_SBX_MANIFEST" \
+    "$SAFER_SBX_CREDS" \
+    "$SAFER_SBX_CLIENT" \
+    "$SAFER_SBX_LOCK"
+  do
+    [[ "$candidate" == "$expected" ]] || continue
+    resolved_c="$(safer_sbx_realpath "$candidate")"
+    resolved_e="$(safer_sbx_realpath "$expected")"
+    [[ -n "$resolved_c" && -n "$resolved_e" && "$resolved_c" == "$resolved_e" ]] || return 1
+    return 0
+  done
+  return 1
 }
 
 safer_sbx_toolkit_root() {
